@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bagikan Lokasi — FKPhone Tracker</title>
+<style>body{font-family:system-ui;max-width:480px;margin:2rem auto;padding:0 1rem}button{padding:.7rem 1.2rem;margin:.3rem .3rem .3rem 0;font-size:1rem}#msg{margin-top:1rem}</style></head>
+<body>
+<h2>Bagikan Lokasi</h2>
+<p>Seseorang meminta Anda membagikan lokasi saat ini. Lokasi hanya dikirim jika Anda menekan tombol di bawah dan mengizinkan akses GPS di browser. Anda dapat menghentikan kapan saja.</p>
+<label><input type="checkbox" id="c"> Saya setuju membagikan lokasi saya melalui tautan ini.</label><br><br>
+<button id="go" disabled>Bagikan lokasi</button><button id="stop">Hentikan berbagi</button>
+<div id="msg"></div>
+<script>
+const token = location.pathname.split("/").pop(), $ = id => document.getElementById(id);
+const msg = t => $("msg").textContent = t;
+const post = (p, b) => fetch("/api/v1/location/" + p, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(b)});
+$("c").onchange = () => $("go").disabled = !$("c").checked;
+$("go").onclick = () => {
+  if (!navigator.geolocation) return msg("Browser tidak mendukung geolokasi.");
+  navigator.geolocation.getCurrentPosition(async p => {
+    const r = await post("submit", {token, consent:true, latitude:p.coords.latitude, longitude:p.coords.longitude});
+    msg(r.ok ? "Lokasi terkirim. Tekan 'Hentikan berbagi' untuk mencabut." : "Gagal: tautan tidak valid/kedaluwarsa.");
+  }, e => msg("Izin lokasi ditolak/gagal: " + e.message), {enableHighAccuracy:true, timeout:15000});
+};
+$("stop").onclick = async () => { const r = await post("revoke", {token}); msg(r.ok ? "Berbagi lokasi dihentikan dan data dihapus." : "Gagal mencabut."); };
+</script></body></html>
